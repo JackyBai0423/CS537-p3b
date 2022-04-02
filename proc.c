@@ -532,3 +532,14 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+int clone(){
+  int i, pid;
+  struct proc *newThread;
+  struct proc *curproc = myproc();
+
+  // allocate thread
+  if((newThread = allocproc())==0){
+    return -1;
+  }
+}
