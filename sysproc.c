@@ -89,3 +89,24 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// clone in p3b
+int
+sys_clone(void)
+{
+  // unimplemented
+  int func;
+  int arg1, arg2;
+  int stack_add;
+
+  if (argint(0, &func) < 0)
+    return -1;
+  if (argint(1, &arg1) < 0)
+    return -1;
+  if (argint(2, &arg2) < 0)
+    return -1;
+  if (argint(2, &stack) < 0)
+    return -1;
+ 
+  return clone((void *)func, (void *)arg1, (void *)arg2, (void *)stack);
+}
