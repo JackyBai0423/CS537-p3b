@@ -121,37 +121,37 @@ sys_join(void){
   return join(stack);
 }
 
-int 
-sys_initlock_t(void){
-  struct ticketlock *t_lock;
-  if (argptr(0, (char**)&t_lock, sizeof(struct ticketlock*)) < 0)
-  {
-    return -1;
-  }
+// int 
+// sys_initlock_t(void){
+//   struct ticketlock *t_lock;
+//   if (argptr(0, (char**)&t_lock, sizeof(struct ticketlock*)) < 0)
+//   {
+//     return -1;
+//   }
 
-  initlock_t(t_lock);
-  return 0;
-}
+//   initlock_t(t_lock);
+//   return 0;
+// }
 
-int
-sys_acquirelock_t(void){
-  struct ticketlock *t_lock;
-  if(argptr(0,(char**)&t_lock, sizeof(struct ticketlock)) <0)
-  {
-    return -1;
-  }
-  acquire_t(t_lock);
-  return 0;
-}
+// int
+// sys_acquirelock_t(void){
+//   struct ticketlock *t_lock;
+//   if(argptr(0,(char**)&t_lock, sizeof(struct ticketlock)) <0)
+//   {
+//     return -1;
+//   }
+//   acquire_t(t_lock);
+//   return 0;
+// }
 
-int 
-sys_releaselock_t(void){
-  struct ticketlock *t_lock;
-  if(argptr(0,(char**)&t_lock, sizeof(struct ticketlock)) <0)
-  {
-    return -1;
-  }
-  release_t(t_lock);
-  return 0;
-}
+// int 
+// sys_releaselock_t(void){
+//   struct ticketlock *t_lock;
+//   if(argptr(0,(char**)&t_lock, sizeof(struct ticketlock)) <0)
+//   {
+//     return -1;
+//   }
+//   release_t(t_lock);
+//   return 0;
+// }
 
