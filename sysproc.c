@@ -94,7 +94,6 @@ sys_uptime(void)
 int
 sys_clone(void)
 {
-  // unimplemented
   int func;
   int arg1, arg2;
   int stack_add;
