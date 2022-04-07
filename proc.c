@@ -533,7 +533,7 @@ procdump(void)
   }
 }
 
-int clone(){
+int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
   int i, pid;
   struct proc *newThread;
   struct proc *curproc = myproc();
@@ -542,4 +542,51 @@ int clone(){
   if((newThread = allocproc())==0){
     return -1;
   }
+
+  // Copy process state from proc.
+  if((newThread->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
+    kfree(newThread);
+    newThread->kstack = 0;
+    newThread->state = UNUSED;
+    return -1;
+  }
+
+  // initialize thread
+  newThread->sz = curproc->sz;
+  newThread->pid = curproc->pid;
+  newThread->pgdir = curproc->pgdir;
+  if(curproc->isThread==0){
+    newThread->parent = curproc;
+  }else{
+    newThread->parent = curproc->parent;
+  }
+  // change isThread to 1
+  newThread->isThread = 1;
+  newThread->tf = curproc->tf;
+  // Clear %eax so that fork returns 0 in the child.
+  newThread->tf->eax = 0;
+  // let eip register point to the function to be executed
+  newThread->tf->eip = (uint)fcn;
+  // set the stack pointer to the top of the stack
+  newThread->ustack = stack;
+  // push the arguments to the stack
+  *(stack + 4096 - sizeof(int *)) = (uint)arg1;
+  *(stack + 4096 - 2*sizeof(int *)) = (uint)arg2;
+  *(stack + 4096 - 3*sizeof(int *)) = 0xFFFFFFFF;
+  newThread->tf->esp = (uint)stack + PGSIZE;
+
+  for(i=0; i<NOFILE; i++)
+    if(curproc->ofile[i])
+      newThread->ofile[i] = curproc->ofile[i];
+  newThread->cwd = idup(curproc->cwd);
+
+  safestrcpy(newThread->name, curproc->name, sizeof(curproc->name));
+  pid = newThread->pid;
+  
+  // run the thread
+  acquire(&ptable.lock);
+  newThread->state = RUNNABLE;
+  release(&ptable.lock);
+
+  return pid;
 }
