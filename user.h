@@ -1,5 +1,6 @@
 struct stat;
 struct rtcdate;
+struct ticketlock; //boqi 
 
 // system calls
 int fork(void);
