@@ -3,7 +3,7 @@
 #include "fcntl.h"
 #include "user.h"
 #include "x86.h"
-
+#include "ticketlock.h"
 char*
 strcpy(char *s, const char *t)
 {
@@ -103,4 +103,21 @@ memmove(void *vdst, const void *vsrc, int n)
   while(n-- > 0)
     *dst++ = *src++;
   return vdst;
+}
+
+void
+lock_init(lock_t *lock){
+  lock->ticket = 0;
+  lock->turn = 0;
+}
+
+void
+lock_acquire(lock_t *lock){
+  int myturn = fetch_and_add(&lock->ticket, 1);
+  while(fetch_and_add(&lock->turn, 0)!= myturn);
+}
+
+void
+lock_release(lock_t *lock){
+  lock->turn = lock->turn +1;
 }
