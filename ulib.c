@@ -3,7 +3,13 @@
 #include "fcntl.h"
 #include "user.h"
 #include "x86.h"
+#include "fs.h"
+#include "param.h"
+#include "syscall.h"
+#include "traps.h"
 #include "ticketlock.h"
+
+#define PGSIZE 4096
 char*
 strcpy(char *s, const char *t)
 {
@@ -104,7 +110,23 @@ memmove(void *vdst, const void *vsrc, int n)
     *dst++ = *src++;
   return vdst;
 }
+// thread library
+int thread_create(void (*start_routine)(void *, void *), void *arg1, void *arg2){
+  // allocate stack for thread
+  void *stack = malloc(PGSIZE*2);
+  if(stack==NULL) // malloc failure
+    exit(1);
+  return clone(start_routine, arg1, arg2, stack);
+}
 
+// thread join
+int thread_join(){
+  // calls join() to free user stack and return waited-for PID
+  void *stack;
+  int pid = join(&stack);
+  if(pid != -1)
+    free(stack);
+  return pid;
 void
 lock_init(lock_t *lock){
   lock->ticket = 0;
