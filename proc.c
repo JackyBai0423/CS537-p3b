@@ -282,7 +282,7 @@ wait(void)
     // Scan through table looking for exited children.
     havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->parent != curproc)
+      if(p->parent != curproc || p->isThread == 1)
         continue;
       havekids = 1;
       if(p->state == ZOMBIE){
@@ -549,13 +549,13 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
     return -1;
   }
 
-  // // Copy process state from proc.
-  // if((newThread->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
-  //   kfree(newThread);
-  //   newThread->kstack = 0;
-  //   newThread->state = UNUSED;
-  //   return -1;
-  // }
+  // Copy process state from proc.
+  if((newThread->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
+    kfree(newThread->kstack);
+    newThread->kstack = 0;
+    newThread->state = UNUSED;
+    return -1;
+  }
 
   // initialize thread
   newThread->sz = curproc->sz;
@@ -610,13 +610,17 @@ int join(void **stack){
   struct proc *p;
   int havekids, pid;
   struct proc *curproc = myproc();
+  // if stack is not aligned, return -1
+  if((uint)stack % 4 != 0){
+    return -1;
+  }
   
   acquire(&ptable.lock);
   for(;;){
     // Scan through table looking for exited children.
     havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->parent != curproc)
+      if(p->parent != curproc||p->isThread!=1)
         continue;
       havekids = 1;
       if(p->state == ZOMBIE){
