@@ -37,9 +37,6 @@ main(int argc, char *argv[])
    assert(clone_pid > 0);
 
    sleep(250);
-   // while(1){
-   //    printf(1, "1\n");
-   // }
    assert(wait() == -1);
 
    void *join_stack;
