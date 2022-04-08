@@ -544,13 +544,13 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
     return -1;
   }
 
-  // Copy process state from proc.
-  if((newThread->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
-    kfree(newThread);
-    newThread->kstack = 0;
-    newThread->state = UNUSED;
-    return -1;
-  }
+  // // Copy process state from proc.
+  // if((newThread->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
+  //   kfree(newThread);
+  //   newThread->kstack = 0;
+  //   newThread->state = UNUSED;
+  //   return -1;
+  // }
 
   // initialize thread
   newThread->sz = curproc->sz;
@@ -571,9 +571,9 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
   // set the stack pointer to the top of the stack
   newThread->ustack = stack;
   // push the arguments to the stack
-  *(stack + 4096 - sizeof(int *)) = (uint)arg1;
-  *(stack + 4096 - 2*sizeof(int *)) = (uint)arg2;
-  *(stack + 4096 - 3*sizeof(int *)) = 0xFFFFFFFF;
+  *((int *)(stack + 4096 - sizeof(int *))) = (uint)arg1;
+  *((int *)(stack + 4096 - 2*sizeof(int *))) = (uint)arg2;
+  *((int *)(stack + 4096 - 3*sizeof(int *))) = 0xFFFFFFFF;
   newThread->tf->esp = (uint)stack + PGSIZE;
 
   for(i=0; i<NOFILE; i++)
