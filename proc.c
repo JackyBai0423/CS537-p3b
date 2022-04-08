@@ -539,6 +539,11 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
   struct proc *newThread;
   struct proc *curproc = myproc();
 
+  // if stack is invalid, return -1
+  if(stack == 0 || (uint)stack % PGSIZE != 0){
+    return -1;
+  }
+
   // allocate thread
   if((newThread = allocproc())==0){
     return -1;
@@ -563,18 +568,26 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
   }
   // change isThread to 1
   newThread->isThread = 1;
-  newThread->tf = curproc->tf;
+  *newThread->tf = *curproc->tf;
   // Clear %eax so that fork returns 0 in the child.
   newThread->tf->eax = 0;
   // let eip register point to the function to be executed
-  newThread->tf->eip = (uint)fcn;
   // set the stack pointer to the top of the stack
   newThread->ustack = stack;
   // push the arguments to the stack
-  *((int *)(stack + 4096 - sizeof(int *))) = (uint)arg1;
-  *((int *)(stack + 4096 - 2*sizeof(int *))) = (uint)arg2;
-  *((int *)(stack + 4096 - 3*sizeof(int *))) = 0xFFFFFFFF;
-  newThread->tf->esp = (uint)stack + PGSIZE;
+  uint user_stack[3];
+  user_stack[0] = 0xffffffff;
+  user_stack[1] = (uint)arg1;
+  user_stack[2] = (uint)arg2;
+  uint stack_top = (uint)stack + PGSIZE;
+  stack_top-=12;
+  // copy user stack values to np's memory
+  if (copyout(newThread->pgdir, stack_top, user_stack, 12) < 0) {
+	  return -1;
+  }
+  newThread->tf->ebp = (uint)stack_top;
+  newThread->tf->esp = (uint)stack_top;
+  newThread->tf->eip = (uint)fcn;
 
   for(i=0; i<NOFILE; i++)
     if(curproc->ofile[i])
@@ -596,27 +609,27 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
 int join(void **stack){
   struct proc *p;
   int havekids, pid;
-
+  struct proc *curproc = myproc();
+  
   acquire(&ptable.lock);
   for(;;){
     // Scan through table looking for exited children.
     havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->parent != myproc()){
+      if(p->parent != curproc)
         continue;
-      }
       havekids = 1;
       if(p->state == ZOMBIE){
         // Found one.
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
-        freevm(p->pgdir);
-        p->state = UNUSED;
+        // freevm(p->pgdir);
         p->pid = 0;
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
+        p->state = UNUSED;
         *stack = p->ustack;
         release(&ptable.lock);
         return pid;
@@ -624,13 +637,12 @@ int join(void **stack){
     }
 
     // No point waiting if we don't have any children.
-    if(!havekids || myproc()->killed){
+    if(!havekids || curproc->killed){
       release(&ptable.lock);
       return -1;
     }
 
     // Wait for children to exit.  (See wakeup1 call in proc_exit.)
-    sleep(myproc(), &ptable.lock);  //DOC: wait-sleep
+    sleep(curproc, &ptable.lock);  //DOC: wait-sleep
   }
-  return 0;
 }

@@ -106,7 +106,7 @@ sys_clone(void)
     return -1;
   if (argint(2, &arg2) < 0)
     return -1;
-  if (argint(2, &stack_add) < 0)
+  if (argint(3, &stack_add) < 0)
     return -1;
  
   return clone((void *)func, (void *)arg1, (void *)arg2, (void *)stack_add);
