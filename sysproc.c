@@ -95,9 +95,10 @@ sys_uptime(void)
 int
 sys_clone(void)
 {
-  int func;
-  int arg1, arg2;
-  int stack_add;
+  int func = 0;
+  int arg1 = 0;
+  int arg2 = 0;
+  int stack_add = 0;
 
   if (argint(0, &func) < 0)
     return -1;
@@ -105,15 +106,15 @@ sys_clone(void)
     return -1;
   if (argint(2, &arg2) < 0)
     return -1;
-  if (argint(2, &stack) < 0)
+  if (argint(2, &stack_add) < 0)
     return -1;
  
-  return clone((void *)func, (void *)arg1, (void *)arg2, (void *)stack);
+  return clone((void *)func, (void *)arg1, (void *)arg2, (void *)stack_add);
 }
 
 int
 sys_join(void){
-  void **stack;
+  void **stack = 0;
 
   if(argint(0,(int *)&stack) < 0){
     return -1;
