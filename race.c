@@ -31,7 +31,10 @@ main(int argc, char *argv[])
   ppid = getpid();
 
   lock_init(&lock);
+  lock_acquire(&lock);
   running_flag = 1;
+  lock_release(&lock);
+
   assert((pid1 = thread_create(consume, NULL, NULL)) > 0);
   assert((pid2 = thread_create(consume, NULL, NULL)) > 0);
   assert((pid3 = thread_create(consume, NULL, NULL)) > 0);
@@ -48,7 +51,9 @@ main(int argc, char *argv[])
   }
   
   sleep(2000);
+  lock_acquire(&lock);
   running_flag = 0;
+  lock_release(&lock);
   sleep(100);
   
   
@@ -72,15 +77,15 @@ consume(void *arg1, void *arg2) {
   sleep(100);
   while(running_flag) {
     //printf(1, "in consume\n");
-
+  lock_acquire(&lock);
 	if (a > 0) {
 		a--;
 
 		//printf(1, "consumed 1\n");
 		b++;
-
+    
 	}
-
+  lock_release(&lock);
   }
 
   //printf(1, "out of consume\n");
