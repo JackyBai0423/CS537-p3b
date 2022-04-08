@@ -171,6 +171,13 @@ growproc(int n)
       return -1;
   }
   curproc->sz = sz;
+  // thread addition
+  struct proc *p;
+  for(p = ptable.proc; p < &ptable.proc[NPROC];p++){
+    if(p->parent == curproc){
+      p->sz = sz;
+    }
+  }
   switchuvm(curproc);
   return 0;
 }
@@ -276,13 +283,16 @@ wait(void)
   struct proc *p;
   int havekids, pid;
   struct proc *curproc = myproc();
+  // if(curproc->isThread){
+  //   return -1;
+  // }
   
   acquire(&ptable.lock);
   for(;;){
     // Scan through table looking for exited children.
     havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->parent != curproc || p->isThread == 1)
+      if(p->parent != curproc||p->isThread)
         continue;
       havekids = 1;
       if(p->state == ZOMBIE){
@@ -550,12 +560,12 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
   }
 
   // Copy process state from proc.
-  if((newThread->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
-    kfree(newThread->kstack);
-    newThread->kstack = 0;
-    newThread->state = UNUSED;
-    return -1;
-  }
+  // if((newThread->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
+  //   kfree(newThread->kstack);
+  //   newThread->kstack = 0;
+  //   newThread->state = UNUSED;
+  //   return -1;
+  // }
 
   // initialize thread
   newThread->sz = curproc->sz;
@@ -575,6 +585,10 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
   // set the stack pointer to the top of the stack
   newThread->ustack = stack;
   // push the arguments to the stack
+  // void* aligned_stack = 0;
+  // if((uint)stack%PGSIZE){
+  //   aligned_stack = stack + (PGSIZE - ((uint)stack%PGSIZE));
+  // }
   uint user_stack[3];
   user_stack[0] = 0xffffffff;
   user_stack[1] = (uint)arg1;
@@ -589,9 +603,10 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
   newThread->tf->esp = (uint)stack_top;
   newThread->tf->eip = (uint)fcn;
 
-  for(i=0; i<NOFILE; i++)
+
+  for(i = 0; i < NOFILE; i++)
     if(curproc->ofile[i])
-      newThread->ofile[i] = curproc->ofile[i];
+      newThread->ofile[i] = filedup(curproc->ofile[i]);
   newThread->cwd = idup(curproc->cwd);
 
   safestrcpy(newThread->name, curproc->name, sizeof(curproc->name));
@@ -620,6 +635,9 @@ int join(void **stack){
     // Scan through table looking for exited children.
     havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->pgdir!=curproc->pgdir){
+        continue;
+      }
       if(p->parent != curproc||p->isThread!=1)
         continue;
       havekids = 1;

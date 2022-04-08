@@ -107,11 +107,20 @@ memmove(void *vdst, const void *vsrc, int n)
   return vdst;
 }
 // thread library
+void* unaligned_stack[2048];
+int numOfThreads = 0;
 int thread_create(void (*start_routine)(void *, void *), void *arg1, void *arg2){
+  // if(pgcount>=150){
+  //   thread_join();
+  // }
   // allocate stack for thread
   void *stack = malloc(PGSIZE*2);
-  if(!stack) // malloc failure
-    exit();
+  unaligned_stack[numOfThreads] = stack;
+  numOfThreads++;
+  // align stack to page boundary
+  if((uint)stack%PGSIZE){
+    stack = stack + (PGSIZE - ((uint)stack%PGSIZE));
+  }
   return clone(start_routine, arg1, arg2, stack);
 }
 
@@ -120,8 +129,16 @@ int thread_join(){
   // calls join() to free user stack and return waited-for PID
   void *stack;
   int pid = join(&stack);
-  if(pid != -1)
-    free(stack);
+  if(pid != -1){
+    for(int i = 0; i < 2048; i++){
+      if(stack>=unaligned_stack[i] && stack<=unaligned_stack[i]+PGSIZE){
+        free(unaligned_stack[i]);
+        unaligned_stack[i] = 0;
+        break;
+      }
+    }
+    numOfThreads--;
+  }
   return pid;
 }
 
