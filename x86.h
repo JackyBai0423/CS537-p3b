@@ -140,7 +140,7 @@ xchg(volatile uint *addr, uint newval)
 //   return val;
 // }
 static inline int 
-fetch_and_add(uint* variable, int value)
+fetch_and_add(int* variable, int value)
 {
     __asm__ volatile("lock; xaddl %0, %1"
       : "+r" (value), "+m" (*variable) // input + output
